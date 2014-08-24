@@ -40,8 +40,9 @@ import com.google.maps.android.ui.SquareTextView;
 import com.google.maps.android.ui.IconGenerator;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,8 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
     /**
      * Markers that are currently on the map.
      */
-    private Set<MarkerWithPosition> mMarkers = new HashSet<MarkerWithPosition>();
+    private Set<MarkerWithPosition> mMarkers = Collections.newSetFromMap(
+        new ConcurrentHashMap<MarkerWithPosition,Boolean>());
 
     /**
      * Icons for each bucket.
@@ -328,6 +330,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             this.mSphericalMercatorProjection = new SphericalMercatorProjection(256 * Math.pow(2, Math.min(zoom, mZoom)));
         }
 
+        @Override
         @SuppressLint("NewApi")
         public void run() {
             if (clusters.equals(DefaultClusterRenderer.this.mClusters)) {
@@ -359,7 +362,8 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             }
 
             // Create the new markers and animate them to their new positions.
-            final Set<MarkerWithPosition> newMarkers = new HashSet<MarkerWithPosition>();
+            final Set<MarkerWithPosition> newMarkers = Collections.newSetFromMap(
+                new ConcurrentHashMap<MarkerWithPosition,Boolean>());
             for (Cluster<T> c : clusters) {
                 boolean onScreen = visibleBounds.contains(c.getPosition());
                 if (zoomingIn && onScreen && SHOULD_ANIMATE) {
@@ -718,7 +722,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
      */
     protected void onClusterItemRendered(T clusterItem, Marker marker) {
     }
-    
+
     /**
      * Get the marker from a ClusterItem
      * @param clusterItem ClusterItem which you will obtain its marker

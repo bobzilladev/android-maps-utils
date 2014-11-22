@@ -50,12 +50,18 @@ public class IconGenerator {
 
     private float mAnchorU = 0.5f;
     private float mAnchorV = 1f;
+    private BubbleDrawable mBackground;
 
     /**
      * Creates a new IconGenerator with the default style.
      */
     public IconGenerator(Context context) {
         mContext = context;
+        mBackground = new BubbleDrawable(mContext.getResources());
+        mContainer = (ViewGroup) LayoutInflater.from(mContext).inflate(R.layout.text_bubble, null);
+        mRotationLayout = (RotationLayout) mContainer.getChildAt(0);
+        mContentView = mTextView = (TextView) mRotationLayout.findViewById(R.id.text);
+        setStyle(STYLE_DEFAULT);
     }
 
     /**
@@ -64,8 +70,6 @@ public class IconGenerator {
      * @param text the text content to display inside the icon.
      */
     public Bitmap makeIcon(String text) {
-        ensureViewsSetUp();
-
         if (mTextView != null) {
             mTextView.setText(text);
         }
@@ -80,19 +84,17 @@ public class IconGenerator {
      * applicable.
      */
     public Bitmap makeIcon() {
-        ViewGroup container = getContainer();
-
         int measureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-        container.measure(measureSpec, measureSpec);
+        mContainer.measure(measureSpec, measureSpec);
 
-        int measuredWidth = container.getMeasuredWidth();
-        int measuredHeight = container.getMeasuredHeight();
+        int measuredWidth = mContainer.getMeasuredWidth();
+        int measuredHeight = mContainer.getMeasuredHeight();
 
-        container.layout(0, 0, measuredWidth, measuredHeight);
+        mContainer.layout(0, 0, measuredWidth, measuredHeight);
 
         if (mRotation == 1 || mRotation == 3) {
-            measuredHeight = container.getMeasuredWidth();
-            measuredWidth = container.getMeasuredHeight();
+            measuredHeight = mContainer.getMeasuredWidth();
+            measuredWidth = mContainer.getMeasuredHeight();
         }
 
         Bitmap r = Bitmap.createBitmap(measuredWidth, measuredHeight, Bitmap.Config.ARGB_8888);
@@ -111,7 +113,7 @@ public class IconGenerator {
             canvas.translate(0, measuredHeight);
             canvas.rotate(270);
         }
-        container.draw(canvas);
+        mContainer.draw(canvas);
         return r;
     }
 
@@ -122,7 +124,6 @@ public class IconGenerator {
      * #setTextAppearance} and {@link #makeIcon(String)} will operate upon that {@link TextView}.
      */
     public void setContentView(View contentView) {
-        ensureViewsSetUp();
         mRotationLayout.removeAllViews();
         mRotationLayout.addView(contentView);
         mContentView = contentView;
@@ -136,7 +137,6 @@ public class IconGenerator {
      * @param degrees the amount the contents should be rotated, as a multiple of 90 degrees.
      */
     public void setContentRotation(int degrees) {
-        ensureViewsSetUp();
         mRotationLayout.setViewRotation(degrees);
     }
 
@@ -188,7 +188,6 @@ public class IconGenerator {
      * @param resid the identifier of the resource.
      */
     public void setTextAppearance(Context context, int resid) {
-        ensureViewsSetUp();
         if (mTextView != null) {
             mTextView.setTextAppearance(context, resid);
         }
@@ -208,8 +207,18 @@ public class IconGenerator {
      * Sets the style of the icon. The style consists of a background and text appearance.
      */
     public void setStyle(int style) {
-        setBackground(mContext.getResources().getDrawable(getBackground(style)));
+        setColor(getStyleColor(style));
         setTextAppearance(mContext, getTextStyle(style));
+    }
+
+    /**
+     * Sets the background to the default, with a given color tint.
+     *
+     * @param color the color for the background tint.
+     */
+    public void setColor(int color) {
+        mBackground.setColor(color);
+        setBackground(mBackground);
     }
 
     /**
@@ -220,35 +229,16 @@ public class IconGenerator {
     @SuppressWarnings("deprecation")
     // View#setBackgroundDrawable is compatible with pre-API level 16 (Jelly Bean).
     public void setBackground(Drawable background) {
-        getContainer().setBackgroundDrawable(background);
+        mContainer.setBackgroundDrawable(background);
 
         // Force setting of padding.
         // setBackgroundDrawable does not call setPadding if the background has 0 padding.
         if (background != null) {
             Rect rect = new Rect();
             background.getPadding(rect);
-            getContainer().setPadding(rect.left, rect.top, rect.right, rect.bottom);
+            mContainer.setPadding(rect.left, rect.top, rect.right, rect.bottom);
         } else {
-            getContainer().setPadding(0, 0, 0, 0);
-        }
-    }
-
-    /**
-     * Not thread safe.
-     */
-    private ViewGroup getContainer() {
-        ensureViewsSetUp();
-        return mContainer;
-    }
-
-    /**
-     * Ensure views are ready. This allows us to lazily inflate the main layout.
-     */
-    private void ensureViewsSetUp() {
-        if (mContainer == null) {
-            mContainer = (ViewGroup) LayoutInflater.from(mContext).inflate(R.layout.text_bubble, null);
-            mRotationLayout = (RotationLayout) mContainer.getChildAt(0);
-            mContentView = mTextView = (TextView) mRotationLayout.findViewById(R.id.text);
+            mContainer.setPadding(0, 0, 0, 0);
         }
     }
 
@@ -262,7 +252,6 @@ public class IconGenerator {
      * @param bottom the bottom padding in pixels.
      */
     public void setContentPadding(int left, int top, int right, int bottom) {
-        ensureViewsSetUp();
         mContentView.setPadding(left, top, right, bottom);
     }
 
@@ -274,22 +263,22 @@ public class IconGenerator {
     public static final int STYLE_PURPLE = 6;
     public static final int STYLE_ORANGE = 7;
 
-    private static int getBackground(int style) {
+    private static int getStyleColor(int style) {
         switch (style) {
             default:
             case STYLE_DEFAULT:
             case STYLE_WHITE:
-                return R.drawable.bubble_white;
+                return 0xffffffff;
             case STYLE_RED:
-                return R.drawable.bubble_red;
+                return 0xffcc0000;
             case STYLE_BLUE:
-                return R.drawable.bubble_blue;
+                return 0xff0099cc;
             case STYLE_GREEN:
-                return R.drawable.bubble_green;
+                return 0xff669900;
             case STYLE_PURPLE:
-                return R.drawable.bubble_purple;
+                return 0xff9933cc;
             case STYLE_ORANGE:
-                return R.drawable.bubble_orange;
+                return 0xffff8800;
         }
     }
 

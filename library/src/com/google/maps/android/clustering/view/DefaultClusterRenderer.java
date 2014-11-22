@@ -71,7 +71,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
      * Markers that are currently on the map.
      */
     private Set<MarkerWithPosition> mMarkers = Collections.newSetFromMap(
-        new ConcurrentHashMap<MarkerWithPosition,Boolean>());
+            new ConcurrentHashMap<MarkerWithPosition, Boolean>());
 
     /**
      * Icons for each bucket.
@@ -363,7 +363,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
 
             // Create the new markers and animate them to their new positions.
             final Set<MarkerWithPosition> newMarkers = Collections.newSetFromMap(
-                new ConcurrentHashMap<MarkerWithPosition,Boolean>());
+                    new ConcurrentHashMap<MarkerWithPosition, Boolean>());
             for (Cluster<T> c : clusters) {
                 boolean onScreen = visibleBounds.contains(c.getPosition());
                 if (zoomingIn && onScreen && SHOULD_ANIMATE) {
@@ -626,10 +626,15 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
          * @return true if there is still work to be processed.
          */
         public boolean isBusy() {
-            return !(mCreateMarkerTasks.isEmpty() && mOnScreenCreateMarkerTasks.isEmpty() &&
-                    mOnScreenRemoveMarkerTasks.isEmpty() && mRemoveMarkerTasks.isEmpty() &&
-                    mAnimationTasks.isEmpty()
-            );
+            try {
+                lock.lock();
+                return !(mCreateMarkerTasks.isEmpty() && mOnScreenCreateMarkerTasks.isEmpty() &&
+                        mOnScreenRemoveMarkerTasks.isEmpty() && mRemoveMarkerTasks.isEmpty() &&
+                        mAnimationTasks.isEmpty()
+                );
+            } finally {
+                lock.unlock();
+            }
         }
 
         /**

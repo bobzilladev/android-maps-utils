@@ -1,3 +1,19 @@
+/*
+ * Copyright 2013 Google Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.google.maps.android.clustering.view;
 
 import android.animation.Animator;
@@ -86,7 +102,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
     /**
      * If cluster size is less than this size, display individual markers.
      */
-    private static final int MIN_CLUSTER_SIZE = 4;
+    private int mMinClusterSize = 4;
 
     /**
      * The currently displayed set of clusters.
@@ -116,7 +132,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
         mDensity = context.getResources().getDisplayMetrics().density;
         mIconGenerator = new IconGenerator(context);
         mIconGenerator.setContentView(makeSquareTextView(context));
-        mIconGenerator.setTextAppearance(R.style.ClusterIcon_TextAppearance);
+        mIconGenerator.setTextAppearance(R.style.amu_ClusterIcon_TextAppearance);
         mIconGenerator.setBackground(makeClusterBackground());
         mClusterManager = clusterManager;
     }
@@ -176,13 +192,13 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
         SquareTextView squareTextView = new SquareTextView(context);
         ViewGroup.LayoutParams layoutParams = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         squareTextView.setLayoutParams(layoutParams);
-        squareTextView.setId(R.id.text);
+        squareTextView.setId(R.id.amu_text);
         int twelveDpi = (int) (12 * mDensity);
         squareTextView.setPadding(twelveDpi, twelveDpi, twelveDpi, twelveDpi);
         return squareTextView;
     }
 
-    private int getColor(int clusterSize) {
+    protected int getColor(int clusterSize) {
         final float hueRange = 220;
         final float sizeRange = 300;
         final float size = Math.min(clusterSize, sizeRange);
@@ -216,7 +232,15 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
         return BUCKETS[BUCKETS.length - 1];
     }
 
-    /**
+    public int getMinClusterSize() {
+        return mMinClusterSize;
+    }
+
+    public void setMinClusterSize(int minClusterSize) {
+        mMinClusterSize = minClusterSize;
+    }
+
+	/**
      * ViewModifier ensures only one re-rendering of the view occurs at a time, and schedules
      * re-rendering, which is performed by the RenderTask.
      */
@@ -248,6 +272,11 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
                 // Nothing to do.
                 return;
             }
+            Projection projection = mMap.getProjection();
+            if (projection == null) {
+                // Without a map projection we can't render clusters.
+                return;
+            }
 
             RenderTask renderTask;
             synchronized (this) {
@@ -262,7 +291,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
                     sendEmptyMessage(TASK_FINISHED);
                 }
             });
-            renderTask.setProjection(mMap.getProjection());
+            renderTask.setProjection(projection);
             renderTask.setMapZoom(mMap.getCameraPosition().zoom);
             new Thread(renderTask).start();
         }
@@ -280,7 +309,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
      * Determine whether the cluster should be rendered as individual markers or a cluster.
      */
     protected boolean shouldRenderAsCluster(Cluster<T> cluster) {
-        return cluster.getSize() > MIN_CLUSTER_SIZE;
+        return cluster.getSize() > mMinClusterSize;
     }
 
     /**
@@ -555,6 +584,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
          * @param from   the position to animate from.
          * @param to     the position to animate to.
          */
+        @TargetApi(Build.VERSION_CODES.HONEYCOMB)
         public void animateThenRemove(MarkerWithPosition marker, LatLng from, LatLng to) {
             lock.lock();
             AnimationTask animationTask = new AnimationTask(marker, from, to);
@@ -600,6 +630,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
         /**
          * Perform the next task. Prioritise any on-screen work.
          */
+        @TargetApi(Build.VERSION_CODES.HONEYCOMB)
         private void performNextTask() {
             if (!mOnScreenRemoveMarkerTasks.isEmpty()) {
                 removeMarker(mOnScreenRemoveMarkerTasks.poll());

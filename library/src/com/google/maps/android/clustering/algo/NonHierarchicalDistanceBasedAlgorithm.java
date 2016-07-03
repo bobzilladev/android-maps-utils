@@ -136,7 +136,10 @@ public class NonHierarchicalDistanceBasedAlgorithm<T extends ClusterItem> implem
                             continue;
                         }
                         // Move item to the closer cluster.
-                        itemToCluster.get(clusterItem).remove(clusterItem.mClusterItem);
+                        final StaticCluster<T> item = itemToCluster.get(clusterItem);
+                        if (item != null) {
+                            item.remove(clusterItem.mClusterItem);
+                        }
                     }
                     distanceToCluster.put(clusterItem, distance);
                     cluster.add(clusterItem.mClusterItem);
